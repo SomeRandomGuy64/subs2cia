@@ -103,9 +103,18 @@ class Stream:
             try:
                 lang = pycountry.languages.lookup(self.lang)
             except:
-                logging.warning(f"{self.lang} is not a language, treating {self.file.filepath} as unknown language")
-                self.lang = 'unknownlang'
-                return self.lang
+                # Handle BCP 47 locale tags like zh-TW, pt-BR
+                if '-' in self.lang:
+                    try:
+                        lang = pycountry.languages.lookup(self.lang.split('-')[0])
+                    except:
+                        lang = None
+                else:
+                    lang = None
+                if lang is None:
+                    logging.warning(f"{self.lang} is not a language, treating {self.file.filepath} as unknown language")
+                    self.lang = 'unknownlang'
+                    return self.lang
             self.lang = lang
             return self.lang.alpha_3
         # look at metadata for language codes
@@ -187,6 +196,13 @@ def is_language(s):
         pycountry.languages.lookup(s)
         return True
     except:
+        # Handle BCP 47 locale tags like zh-TW, pt-BR
+        if '-' in s:
+            try:
+                pycountry.languages.lookup(s.split('-')[0])
+                return True
+            except:
+                pass
         return False
 
 

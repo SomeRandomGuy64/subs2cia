@@ -131,6 +131,8 @@ def srs_export_start(args, groups: List[List[AVSFile]]):
             c.list_streams()
             continue
         c.choose_streams()
+        if c.insufficient:
+            continue
         c.export()
         c.cleanup()
 
