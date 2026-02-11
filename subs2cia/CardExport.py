@@ -228,7 +228,7 @@ class CardExport(Common):
 
                 start_idx = max(0, non_ephemeral_idx - 15)
                 end_idx = min(len(group_texts), non_ephemeral_idx + 16)
-                row['context'] = 'Sentence context:\\n' + '\\n'.join(group_texts[start_idx:end_idx])
+                row['context'] = 'Sentence context: ' + ' | '.join(group_texts[start_idx:end_idx])
 
                 csvw.writerow([row.get(col, '') for col in csv_columns])
 
