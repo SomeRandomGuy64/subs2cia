@@ -173,7 +173,7 @@ class CardExport(Common):
                 media_file_stem = media_dir / (ud.normalize('NFC', self.outstem).translate(forbidden_chars) + f"_{group.group_range[0]}-{group.group_range[1]}")
 
                 if export_audio:
-                    outpath = media_file_stem.with_suffix('.mp3')
+                    outpath = Path(str(media_file_stem) + '.mp3')
                     row['audioclip'] = f"[sound:{outpath.name}]"
 
                     if outpath.exists():
@@ -191,7 +191,7 @@ class CardExport(Common):
                         )
 
                 if export_screenshot:
-                    outpath = media_file_stem.with_suffix('.jpg')
+                    outpath = Path(str(media_file_stem) + '.jpg')
                     row['screenclip'] = f"<img src='{outpath.name}'>"
 
                     if outpath.exists():
@@ -206,7 +206,7 @@ class CardExport(Common):
                         )
 
                 if export_video:
-                    outpath = media_file_stem.with_suffix('.mp4')
+                    outpath = Path(str(media_file_stem) + '.mp4')
                     row['videoclip'] = f"[sound:{outpath.name}]"
 
                     if outpath.exists():
