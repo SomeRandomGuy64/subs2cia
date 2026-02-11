@@ -121,6 +121,7 @@ class CardExport(Common):
             'screenclip',
             'videoclip',
             'sources',
+            'context',
         ]
 
         export_audio = self.export_audio and self.picked_streams['audio'] is not None
@@ -158,6 +159,13 @@ class CardExport(Common):
             if export_header_row:
                 csvw.writerow(csv_columns)
 
+            group_texts = [
+                g.events[0].plaintext
+                for g in self.subdata.groups
+                if not g.contains_only_ephemeral
+            ]
+
+            non_ephemeral_idx = 0
             for group in tqdm.tqdm(self.subdata.groups):
                 # since subdata.merge_groups hasn't been called, each group only contains one SSAevent
 
@@ -218,5 +226,11 @@ class CardExport(Common):
                             timestamp_end=group.group_range[1], quality=None, outpath=outpath
                         )
 
+                start_idx = max(0, non_ephemeral_idx - 10)
+                end_idx = min(len(group_texts), non_ephemeral_idx + 11)
+                row['context'] = '\\n'.join(group_texts[start_idx:end_idx])
+
                 csvw.writerow([row.get(col, '') for col in csv_columns])
+
+                non_ephemeral_idx += 1
 
