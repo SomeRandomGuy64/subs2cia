@@ -230,16 +230,17 @@ def get_args_subs2cia():
                                        help="Compress input audio/video into a shorter file",
                                        description="Compress input audio/video into a shorter file")
     srs_parser = subparsers.add_parser('srs', parents=[parent_parser],
-                                       help="(Experimental) Snip input media and import into spaced-repetition software via a TSV file.",
-                                       description="(Experimental) Snip input media line by line and export to a Anki-compatible "
+                                       help="Snip input media and import into spaced-repetition software via a TSV file.",
+                                       description="Snip input media line by line and export to an Anki-compatible "
                                                    "TSV file. The output TSV columns are:"+ """
 
 1:\tSubtitle text;
 2:\tTime range of subtitle in milliseconds, formatted as start-end;
 3:\tAudio, formatted as [sound:media_start-end.mp3];
 4:\tScreenshot, HTML formatted as <img src='media_start-end.jpg'>;
-5:\tVideo clip (currently disabled);
-6:\tComma-seperated list of input files used
+5:\tVideo clip (requires --export-video);
+6:\tComma-separated list of input files used;
+7:\tContext: surrounding subtitle lines for LLM-assisted study
 """ )
 
     srs_parser.add_argument('-N', '--normalize', action='store_true', dest='normalize_audio', default=False,

@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased] - mattvsjapan fork
+### Added
+ - Context column (7th TSV column) with surrounding subtitle lines for LLM-assisted language learning
+ - BCP 47 locale tag support for `-tl` (e.g. `zh-TW`, `pt-BR`)
+ - `--media-dir` option to export SRS media directly to a specified directory (e.g. Anki's collection.media)
+ - `--no-export-screenshot` option to skip screenshot export in SRS mode
+ - `--no-export-audio` option to skip audio clip export in SRS mode
+ - `--export-video` option to enable video clip export in SRS mode
+ - `--export-header-row` option to add a header row to the TSV output
+### Fixed
+ - Dotted filenames (e.g. `video.v2.mkv`) no longer cause output files to overwrite each other in batch mode
+### Changed
+ - Removed pandas dependency
+ - Updated repository URL to mattvsjapan/subs2cia
+
 ## [0.5.0]
 ### Added
  - Rewrite of SRS export to support additional config switches and removes Pandas dependency (#42)

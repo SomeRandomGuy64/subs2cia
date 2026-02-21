@@ -39,7 +39,7 @@ setuptools.setup(
     description="A subtitle-based multimedia extractor and compressor",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/dxing97/subs2cia",
+    url="https://github.com/mattvsjapan/subs2cia",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
