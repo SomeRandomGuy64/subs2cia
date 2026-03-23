@@ -269,6 +269,12 @@ class SubtitleManipulator:
             self.ssadata = None
             return
 
+        # Clamp sentence-ending punctuation that absorbs post-sentence silence
+        sentence_enders = frozenset("。！？!?")
+        for w in words:
+            if w['text'] in sentence_enders and w['end'] - w['start'] > 0.2:
+                w['end'] = w['start'] + 0.1
+
         # Build segments by finding gaps > threshold
         threshold_s = self.threshold / 1000.0
         segments = []

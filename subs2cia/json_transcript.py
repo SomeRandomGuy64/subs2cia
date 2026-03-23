@@ -169,6 +169,10 @@ def load_chars(json_path: str, data: dict = None) -> List[CharToken]:
         end = w["end"]
         speaker = w["speaker_id"]
 
+        # Clamp sentence-ending punctuation that absorbs post-sentence silence
+        if text in SENTENCE_ENDERS and end - start > 0.2:
+            end = start + 0.1
+
         if len(text) == 1:
             chars.append(CharToken(text=text, start=start, end=end, speaker=speaker))
         else:
