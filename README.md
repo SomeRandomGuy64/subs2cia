@@ -17,6 +17,7 @@ Create condensed audio/video that contains only the spoken dialogue, cutting out
 - Pads subtitles with extra audio for better context (`-p`)
 - Partition and split long outputs into manageable chunks (`-r`, `-s`)
 - Batch mode for processing entire series at once (`-b`)
+- **JSON transcript input** — use transcribed JSON files (e.g. from ElevenLabs Scribe) instead of subtitle files
 
 ### SRS Export (`subs2cia srs`)
 
@@ -28,6 +29,7 @@ Export every subtitle line as a separate flashcard with audio, screenshot, and s
 - Direct export to Anki media folder (`--media-dir`)
 - Toggle audio/screenshot export (`--no-export-audio`, `--no-export-screenshot`)
 - Context column with surrounding lines for LLM-assisted study
+- **JSON transcript input** — use transcribed JSON files for Japanese sentence-level card generation with MeCab-based segmentation
 
 ### subzipper
 
@@ -38,6 +40,14 @@ Renames subtitle files to match video files for Plex-style naming conventions.
 - **Python** 3.6 or later
 - **ffmpeg** — `ffmpeg` and `ffprobe` must be on your PATH
 - **pip packages** (installed automatically): ffmpeg-python, pycountry, pysubs2, tqdm, gevent, colorlog
+
+### Optional dependencies
+
+- **fugashi** — Required only for JSON transcript → SRS card generation (Japanese). Install with:
+  ```
+  pip install fugashi[unidic-lite]
+  ```
+  Not needed for condensed audio from JSON, or for any subtitle-based workflows.
 
 ## Installation
 
@@ -114,6 +124,13 @@ Batch process a directory, ignoring OP/ED, preferring Japanese:
 subs2cia condense -b -i *.mkv *.srt -I 0m 1m30s -I e2m +1m30s -tl ja -t 1500 -p 100
 ```
 
+Condense from a JSON transcript (e.g. ElevenLabs Scribe output):
+```
+subs2cia condense -i audio.mp3 transcript.json -t 1500 -p 200
+```
+
+The JSON file is used as the timing source instead of subtitles. Speech segments are determined by gaps between words: wherever the gap exceeds the `-t` threshold, a new segment begins. This works with any language.
+
 ### Condense-only options
 
 | Option | Description |
@@ -166,6 +183,13 @@ Export with video clips and a header row:
 subs2cia srs -i video.mkv --export-video --export-header-row -d srs_export
 ```
 
+Generate cards from a JSON transcript (Japanese only):
+```
+subs2cia srs -i audio.mp3 transcript.json -o my_deck
+```
+
+When a JSON transcript is used with `srs`, sentences are segmented using MeCab bunsetsu analysis rather than simple timing. This produces one card per sentence, splitting on sentence-ending punctuation (。！？), speaker changes, and long pauses. Commas also trigger splits for longer clauses. This requires the `fugashi` package (see [Optional dependencies](#optional-dependencies)).
+
 ### SRS-only options
 
 | Option | Description |
@@ -201,7 +225,7 @@ These options are available for both `condense` and `srs` subcommands.
 
 | Option | Description |
 |---|---|
-| `-i <files>` | Input files (video, audio, subtitle) or a directory |
+| `-i <files>` | Input files (video, audio, subtitle, JSON transcript) or a directory |
 | `-o <name>` | Output file name (without extension). Ignored in batch mode |
 | `-d <path>` | Output directory (default: same as input) |
 | `-b` | Batch mode — groups files by name, one output per group |
@@ -286,11 +310,33 @@ Match all subtitle files to all video files in a directory:
 subzipper -s *.ass -r *.mkv -l ja
 ```
 
+## JSON transcript input
+
+Instead of subtitle files, you can use transcribed JSON files from speech-to-text services like [ElevenLabs Scribe](https://elevenlabs.io/). The JSON must have this structure:
+
+```json
+{
+  "language_code": "jpn",
+  "words": [
+    {"text": "こ", "start": 5.1, "end": 5.16, "type": "word", "speaker_id": "speaker_0", "logprob": -0.001},
+    {"text": " ", "start": 5.16, "end": 5.16, "type": "spacing", "speaker_id": "speaker_0", "logprob": 0.0},
+    {"text": "[笑い]", "start": 23.0, "end": 23.0, "type": "audio_event", "speaker_id": "speaker_0", "logprob": -0.07}
+  ]
+}
+```
+
+Required fields: `words` array with `text`, `start`, `end`, and `type` for each token. Times are in seconds. Token types: `word` (speech), `spacing` (whitespace, ignored), `audio_event` (non-speech sounds, ignored).
+
+**Condense mode**: Works with any language. Segments speech by timing gaps — wherever the silence between words exceeds the `-t` threshold, a new segment starts.
+
+**SRS mode**: Japanese only (`language_code` must be `jpn` or `ja`). Uses MeCab morphological analysis to split into natural sentences at punctuation, speaker changes, clause boundaries, and long pauses. Requires `fugashi[unidic-lite]`.
+
 ## Limitations
 
 - **Bitmap subtitles** (e.g. PGS) are not supported — only text-based subtitle formats supported by ffmpeg and pysubs2
 - Subtitle files must be encoded in **UTF-8**
 - Subtitles must be **properly aligned** to audio. subs2cia does not perform alignment
+- **JSON SRS export** is currently Japanese-only — other languages will be rejected with an error
 
 ## About this fork
 
@@ -298,6 +344,8 @@ This is a fork of [dxing97/subs2cia](https://github.com/dxing97/subs2cia) by [@m
 
 ### Fork additions
 
+- **JSON transcript input** — use ElevenLabs Scribe JSON files instead of subtitles for both condensed audio and SRS card generation
+- **Japanese sentence segmentation** — MeCab-based bunsetsu analysis for natural sentence-level card splitting from JSON transcripts
 - **Context column** — 7th TSV column with surrounding subtitle lines for LLM-assisted language learning
 - **BCP 47 locale tags** — `-tl zh-TW`, `-tl pt-BR` etc. now work alongside ISO 639-3 codes
 - **New SRS options** — `--media-dir`, `--no-export-screenshot`, `--no-export-audio`, `--export-video`, `--export-header-row`
