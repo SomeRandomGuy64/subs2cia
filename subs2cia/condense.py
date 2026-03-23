@@ -159,6 +159,9 @@ class Condense(Common):
             logging.info(f'No subtitles to process for output {self.outstem}')
             return
         subpath = self.picked_streams['subtitle'].get_data_path()
+        if subpath.suffix.lower() == '.json':
+            logging.info("Skipping condensed subtitle export for JSON transcript input")
+            return
         subext = subpath.suffix
         self.subdata.condense()
 

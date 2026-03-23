@@ -26,6 +26,9 @@ class AVSFile:
     # but sometimes its better to use a parser and make sure the extension is correct
     def probe(self):
         logging.debug(f"Probing {self.filepath}")
+        if self.filepath.suffix.lower() == '.json':
+            self.info = {'streams': [{'codec_type': 'subtitle', 'codec_name': 'json_transcript'}]}
+            return
         try:
             self.info = ffmpeg.probe(str(self.filepath), 'ffprobe', **{'show_chapters': None})
         except ffmpeg.Error as e:

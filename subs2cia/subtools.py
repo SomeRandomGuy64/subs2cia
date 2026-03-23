@@ -2,6 +2,7 @@ from subs2cia.sources import Stream
 from subs2cia.ffmpeg_tools import ffmpeg_demux, ffmpeg_trim_audio_clip_atrim_encode, ffmpeg_get_frame_fast
 
 import logging
+import json
 import pysubs2 as ps2  # for reading in subtitles
 from pathlib import Path
 from datetime import timedelta
@@ -188,6 +189,10 @@ class SubtitleManipulator:
             logging.warning(f"Subtitle file {self.subpath} does not exist")
             return
 
+        if self.subpath.suffix.lower() == '.json':
+            self._load_json_transcript()
+            return
+
         logging.debug(f"Loading subtitles at {self.subpath}")
         try:
             self.ssadata = ps2.load(str(self.subpath))
@@ -247,6 +252,56 @@ class SubtitleManipulator:
             self.groups.append(SubGroup([e], ephemeral=ignored or not is_dialogue(e, include_all, regex),
                                         threshold=self.threshold,
                                         padding=self.padding))
+
+    def _load_json_transcript(self):
+        logging.debug(f"Loading JSON transcript at {self.subpath}")
+
+        with open(self.subpath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        words = [w for w in data['words'] if w['type'] == 'word']
+        if len(words) == 0:
+            logging.warning(f"No word tokens found in JSON transcript {self.subpath}")
+            self.ssadata = None
+            return
+
+        # Build segments by finding gaps > threshold
+        threshold_s = self.threshold / 1000.0
+        segments = []
+        seg_start = words[0]['start']
+        seg_end = words[0]['end']
+
+        for i in range(1, len(words)):
+            gap = words[i]['start'] - seg_end
+            if gap > threshold_s:
+                segments.append((seg_start, seg_end))
+                seg_start = words[i]['start']
+            seg_end = words[i]['end']
+        segments.append((seg_start, seg_end))
+
+        # Convert to ms, create SubGroups with synthetic SSAEvents
+        self.groups = []
+        for seg_start_s, seg_end_s in segments:
+            start_ms = int(seg_start_s * 1000)
+            end_ms = int(seg_end_s * 1000)
+            event = ps2.SSAEvent(start=start_ms, end=end_ms)
+
+            if self.ignore_range is not None:
+                if any(overlap_range(ir, [event.start, event.end]) for ir in self.ignore_range):
+                    trimmed = ignore_nibble(self.ignore_range, event)
+                    for te in trimmed:
+                        self.groups.append(SubGroup([te], ephemeral=False,
+                                                    threshold=self.threshold, padding=self.padding))
+                    continue
+
+            self.groups.append(SubGroup([event], ephemeral=False,
+                                        threshold=self.threshold, padding=self.padding))
+
+        self.ssadata = ps2.SSAFile()
+        self.ssa_events = [g.events[0] for g in self.groups]
+        self.ssadata.events = list(self.ssa_events)
+
+        logging.info(f"Created {len(self.groups)} segments from {len(words)} word tokens in JSON transcript")
 
     def merge_groups(self):
         merged = []
