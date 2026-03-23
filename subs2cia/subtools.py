@@ -184,13 +184,17 @@ class SubtitleManipulator:
                                          f"({to_append[1]}ms) is before start of range ({to_append[0]}ms)")
                 self.ignore_range.append(to_append)
 
-    def load(self, include_all: bool, regex: str, substrreplace_regex: str, substrreplace_nokeepchanges: bool):
+    def load(self, include_all: bool, regex: str, substrreplace_regex: str, substrreplace_nokeepchanges: bool,
+             srs_mode: bool = False):
         if not self.subpath.exists():
             logging.warning(f"Subtitle file {self.subpath} does not exist")
             return
 
         if self.subpath.suffix.lower() == '.json':
-            self._load_json_transcript()
+            if srs_mode:
+                self._load_json_transcript_srs()
+            else:
+                self._load_json_transcript()
             return
 
         logging.debug(f"Loading subtitles at {self.subpath}")
@@ -302,6 +306,33 @@ class SubtitleManipulator:
         self.ssadata.events = list(self.ssa_events)
 
         logging.info(f"Created {len(self.groups)} segments from {len(words)} word tokens in JSON transcript")
+
+    def _load_json_transcript_srs(self):
+        from subs2cia.json_transcript import load_json_cues
+
+        cues = load_json_cues(self.subpath)
+
+        self.groups = []
+        for cue in cues:
+            start_ms = int(cue.start * 1000)
+            end_ms = int(cue.end * 1000)
+            event = ps2.SSAEvent(start=start_ms, end=end_ms)
+            event.text = cue.text
+
+            if self.ignore_range is not None:
+                if any(overlap_range(ir, [event.start, event.end]) for ir in self.ignore_range):
+                    trimmed = ignore_nibble(self.ignore_range, event)
+                    for te in trimmed:
+                        self.groups.append(SubGroup([te], ephemeral=False,
+                                                    threshold=self.threshold, padding=self.padding))
+                    continue
+
+            self.groups.append(SubGroup([event], ephemeral=False,
+                                        threshold=self.threshold, padding=self.padding))
+
+        self.ssadata = ps2.SSAFile()
+        self.ssa_events = [g.events[0] for g in self.groups]
+        self.ssadata.events = list(self.ssa_events)
 
     def merge_groups(self):
         merged = []

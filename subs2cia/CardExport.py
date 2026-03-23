@@ -99,7 +99,8 @@ class CardExport(Common):
                                                    threshold=0, padding=self.padding,
                                                    ignore_range=ignore_range, audio_length=audiolength)
             subdata.load(include_all=self.use_all_subs, regex=self.subtitle_regex_filter,
-                         substrreplace_regex='', substrreplace_nokeepchanges=False)
+                         substrreplace_regex='', substrreplace_nokeepchanges=False,
+                         srs_mode=True)
             if subdata.ssadata is None:
                 logging.warning(f"Problem loading subtitle data from {self.picked_streams[k]}")
                 self.picked_streams[k] = None
