@@ -497,12 +497,11 @@ def ffmpeg_trim_audio_clip_atrim_encode(input_file: Path, stream_index: int, tim
     :param silent: If set, suppresses stderr.
     :return: FFmpeg stdout data if capture_stdout is set
     """
-    input_stream = ffmpeg.input(str(input_file))
+    _ss = timestamp_start / 1000
+    _dur = (timestamp_end - timestamp_start) / 1000
+    input_stream = ffmpeg.input(str(input_file), ss=_ss, t=_dur)
     input_stream = input_stream[str(stream_index)]
-
-    input_stream = input_stream.filter("atrim",
-                                     start=timestamp_start/1000,
-                                     end=timestamp_end/1000).filter("asetpts", "PTS-STARTPTS")
+    input_stream = input_stream.filter("asetpts", "PTS-STARTPTS")
 
     if normalize_audio:
         input_stream = input_stream.filter("loudnorm", print_format="summary")
