@@ -542,7 +542,7 @@ def ffmpeg_trim_audio_clip_atrim_encode(input_file: Path, stream_index: int, tim
         logging.error(
             f"ffmpeg couldn't trim audio clip. ffmpeg output: \n" + e.stderr.decode("utf-8"))
         raise e
-    # return stdout
+    return stdout
 
 
 # buggy, dont use
