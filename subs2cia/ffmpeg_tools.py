@@ -497,12 +497,22 @@ def ffmpeg_trim_audio_clip_atrim_encode(input_file: Path, stream_index: int, tim
     :param silent: If set, suppresses stderr.
     :return: FFmpeg stdout data if capture_stdout is set
     """
-    input_stream = ffmpeg.input(str(input_file))
+    # Seek to a few seconds before the clip on the *input* so ffmpeg decodes from near
+    # the clip instead of from the start of the file (the old atrim-only graph decoded
+    # everything from t=0 and threw it away, which is very slow for late clips). atrim
+    # then makes the exact, sample-accurate cut. Because input -ss re-zeros timestamps,
+    # the atrim boundaries are expressed relative to the seek point.
+    seek_margin = 10  # seconds decoded ahead of the clip, absorbs container seek imprecision
+    start_seconds = timestamp_start / 1000
+    end_seconds = timestamp_end / 1000
+    coarse_seek = max(start_seconds - seek_margin, 0)
+
+    input_stream = ffmpeg.input(str(input_file), ss=coarse_seek)
     input_stream = input_stream[str(stream_index)]
 
     input_stream = input_stream.filter("atrim",
-                                     start=timestamp_start/1000,
-                                     end=timestamp_end/1000).filter("asetpts", "PTS-STARTPTS")
+                                       start=start_seconds - coarse_seek,
+                                       end=end_seconds - coarse_seek).filter("asetpts", "PTS-STARTPTS")
 
     if normalize_audio:
         input_stream = input_stream.filter("loudnorm", print_format="summary")
